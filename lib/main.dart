@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'screens/main_layout.dart';
+import 'screens/landing_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,7 +26,7 @@ class MiteruApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const MainLayout(),
+      home: const LandingScreen(),
     );
   }
 }

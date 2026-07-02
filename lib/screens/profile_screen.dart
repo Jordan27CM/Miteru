@@ -48,6 +48,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _loginWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      await FirebaseService.loginWithGoogle();
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -210,6 +230,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Text(
                   _isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión',
                   style: const TextStyle(color: Colors.white70),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Row(
+                children: [
+                  Expanded(child: Divider(color: Colors.white24, thickness: 1)),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('O', style: TextStyle(color: Colors.white54, fontWeight: FontWeight.bold)),
+                  ),
+                  Expanded(child: Divider(color: Colors.white24, thickness: 1)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _loginWithGoogle,
+                  icon: const Icon(Icons.login_rounded, color: Colors.black87),
+                  label: const Text(
+                    'Continuar con Google', 
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                 ),
               )
             ],

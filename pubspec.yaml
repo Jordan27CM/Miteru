@@ -39,6 +39,7 @@ dependencies:
   firebase_database: ^12.4.4
   carousel_slider: ^5.1.2
   translator: ^1.0.4+1
+  google_sign_in: ^6.2.1
 
 dev_dependencies:
   flutter_test:

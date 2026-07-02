@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class FirebaseService {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -28,8 +30,48 @@ class FirebaseService {
     }
   }
 
+  // Cerrar Sesión
   static Future<void> logout() async {
     await _auth.signOut();
+    // Cerramos sesión también en Google para que no recuerde la cuenta obligatoriamente
+    try {
+      if (!kIsWeb) await GoogleSignIn().signOut();
+    } catch (e) {
+      // Ignorar errores al cerrar sesión en Google si no estaba usando Google
+    }
+  }
+
+  // Iniciar Sesión con Google
+  static Future<User?> loginWithGoogle() async {
+    try {
+      if (kIsWeb) {
+        // En Web usamos el Popup nativo de Firebase
+        final googleProvider = GoogleAuthProvider();
+        final credential = await _auth.signInWithPopup(googleProvider);
+        return credential.user;
+      } else {
+        // En móviles usamos el SDK nativo de Google
+        final GoogleSignIn googleSignIn = GoogleSignIn();
+        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+        
+        if (googleUser == null) {
+          throw Exception('Inicio de sesión con Google cancelado.');
+        }
+
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        final userCredential = await _auth.signInWithCredential(credential);
+        return userCredential.user;
+      }
+    } on FirebaseAuthException catch (e) {
+      throw Exception(_handleAuthError(e.code));
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
   }
 
   static String _handleAuthError(String code) {
