@@ -32,7 +32,7 @@ class DetailsScreen extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator(color: defaultColor));
           } else if (snapshot.hasError) {
-            return Center(child: Text('Ups, algo falló: \${snapshot.error}', style: const TextStyle(color: Colors.white)));
+            return Center(child: Text('Ups, algo falló: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
           }
 
           final anime = snapshot.data!;
@@ -95,8 +95,8 @@ class DetailsScreen extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              Expanded(child: _buildStatColumn(Icons.star_rounded, Colors.amber, '\${anime.averageScore ?? "?"}%', 'Puntuación')),
-                              Expanded(child: _buildStatColumn(Icons.tv_rounded, Colors.blueAccent, '\${anime.episodes ?? "?"}', 'Episodios')),
+                              Expanded(child: _buildStatColumn(Icons.star_rounded, Colors.amber, '${anime.averageScore ?? "?"}%', 'Puntuación')),
+                              Expanded(child: _buildStatColumn(Icons.tv_rounded, Colors.blueAccent, '${anime.episodes ?? "?"}', 'Episodios')),
                               Expanded(child: _buildStatColumn(Icons.info_outline_rounded, Colors.greenAccent, anime.status ?? '???', 'Estado')),
                             ],
                           ),

@@ -96,7 +96,7 @@ class FirebaseService {
   static DatabaseReference? _userFavoritesRef() {
     final user = currentUser;
     if (user == null) return null;
-    return _db.ref('users/\${user.uid}/favorites');
+    return _db.ref('users/${user.uid}/favorites');
   }
 
   static Future<void> addFavorite(int idMal) async {
