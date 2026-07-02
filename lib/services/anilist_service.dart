@@ -172,6 +172,33 @@ class AniListService {
           episodes
           status
           averageScore
+          format
+          season
+          seasonYear
+          studios(isMain: true) {
+            nodes { name }
+          }
+          trailer { id site }
+          nextAiringEpisode { timeUntilAiring }
+          characters(sort: [ROLE, RELEVANCE], page: 1, perPage: 15) {
+            edges {
+              node {
+                name { full }
+                image { large }
+              }
+            }
+          }
+          relations {
+            edges {
+              relationType
+              node {
+                idMal
+                title { romaji }
+                coverImage { large color }
+                type
+              }
+            }
+          }
         }
       }
     ''';

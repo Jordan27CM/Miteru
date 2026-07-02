@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../models/anime_model.dart';
 import '../services/anilist_service.dart';
 import '../services/firebase_service.dart';
@@ -21,7 +22,6 @@ class DetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final defaultColor = _hexToColor(initialHexColor);
-    
     final isDesktop = MediaQuery.of(context).size.width >= 600;
 
     return Scaffold(
@@ -45,12 +45,12 @@ class DetailsScreen extends StatelessWidget {
               children: [
                 Positioned(
                   top: 0, left: 0, right: 0,
-                  height: 300,
+                  height: 320,
                   child: Image.network(bannerUrl, fit: BoxFit.cover),
                 ),
                 Positioned(
                   top: 0, left: 0, right: 0,
-                  height: 300,
+                  height: 322,
                   child: Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -58,9 +58,10 @@ class DetailsScreen extends StatelessWidget {
                         end: Alignment.topCenter,
                         colors: [
                           const Color(0xFF0F172A), 
-                          const Color(0xFF0F172A).withOpacity(0.3), 
+                          const Color(0xFF0F172A).withOpacity(0.8), 
                           Colors.transparent
                         ],
+                        stops: const [0.0, 0.4, 1.0],
                       ),
                     ),
                   ),
@@ -70,9 +71,15 @@ class DetailsScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SafeArea(
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-                        onPressed: () => Navigator.pop(context),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: CircleAvatar(
+                          backgroundColor: Colors.black45,
+                          child: IconButton(
+                            icon: const Icon(Icons.arrow_back, color: Colors.white),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ),
                       ),
                     ),
                     
@@ -85,13 +92,14 @@ class DetailsScreen extends StatelessWidget {
                           : _buildMobileHeader(context, anime, dominantColor),
                     ),
                     
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 32),
                     
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // ESTADÍSTICAS PRINCIPALES LIMPIAS
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
@@ -102,6 +110,30 @@ class DetailsScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 32),
 
+                          // TEMPORIZADOR
+                          if (anime.nextEpisodeTime != null)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              margin: const EdgeInsets.only(bottom: 24),
+                              decoration: BoxDecoration(
+                                color: dominantColor.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: dominantColor.withOpacity(0.5)),
+                              ),
+                              child: Column(
+                                children: [
+                                  const Icon(Icons.timer, color: Colors.white70),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Próximo episodio en ${_formatTimeUntil(anime.nextEpisodeTime!)}',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          // GÉNEROS
                           if (anime.genres != null && anime.genres!.isNotEmpty) ...[
                             Wrap(
                               spacing: 8,
@@ -116,13 +148,154 @@ class DetailsScreen extends StatelessWidget {
                             const SizedBox(height: 24),
                           ],
 
-                          const Text('Sinopsis', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                          // REPRODUCTOR DE TRÁILER INTEGRADO
+                          if (anime.trailerId != null) ...[
+                            const Text('Tráiler', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 12),
+                            _TrailerPlayer(trailerId: anime.trailerId!),
+                            const SizedBox(height: 32),
+                          ],
+
+                          // SINOPSIS
+                          const Text('Sinopsis', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 12),
                           Text(
                             cleanDesc,
                             style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.6),
                             textAlign: TextAlign.justify,
                           ),
+                          const SizedBox(height: 32),
+
+                          // FICHA TÉCNICA
+                          const Text('Ficha Técnica', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: [
+                              _buildInfoChip(Icons.video_library_rounded, anime.format ?? 'Desconocido'),
+                              if (anime.seasonYear != null)
+                                _buildInfoChip(Icons.calendar_month_rounded, '${anime.season ?? ""} ${anime.seasonYear}'),
+                              if (anime.studio != null) 
+                                _buildInfoChip(Icons.business_rounded, anime.studio!),
+                            ],
+                          ),
+                          const SizedBox(height: 32),
+
+                          // PERSONAJES
+                          if (anime.characters != null && anime.characters!.isNotEmpty) ...[
+                            const Text('Personajes Principales', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              height: 160,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: anime.characters!.length,
+                                itemBuilder: (context, index) {
+                                  final char = anime.characters![index];
+                                  return Container(
+                                    width: 100,
+                                    margin: const EdgeInsets.only(right: 16),
+                                    child: Column(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(50),
+                                          child: Image.network(
+                                            char['image']!,
+                                            width: 80,
+                                            height: 80,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) => Container(
+                                              width: 80, height: 80, color: Colors.grey.shade800,
+                                              child: const Icon(Icons.person, color: Colors.white),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          char['name']!,
+                                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                          textAlign: TextAlign.center,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                          ],
+
+                          // CRONOLOGÍA / RELACIONES
+                          if (anime.relations != null && anime.relations!.isNotEmpty) ...[
+                            const Text('Animes Relacionados', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              height: 250,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: anime.relations!.length,
+                                itemBuilder: (context, index) {
+                                  final rel = anime.relations![index];
+                                  final type = rel['relationType'];
+                                  final label = _translateRelationType(type);
+                                  
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => DetailsScreen(
+                                            idMal: rel['idMal'],
+                                            initialHexColor: rel['hexColor'],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: Container(
+                                      width: 120,
+                                      margin: const EdgeInsets.only(right: 16),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: Image.network(
+                                              rel['coverImage']!,
+                                              width: 120,
+                                              height: 160,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) => Container(
+                                                width: 120, height: 160, color: Colors.grey.shade800,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: dominantColor,
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            rel['title']!,
+                                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 60), 
                         ],
                       ),
@@ -137,14 +310,53 @@ class DetailsScreen extends StatelessWidget {
     );
   }
 
+  String _formatTimeUntil(int seconds) {
+    final days = seconds ~/ 86400;
+    final hours = (seconds % 86400) ~/ 3600;
+    if (days > 0) return '$days días y $hours hrs';
+    return '$hours horas';
+  }
+
+  String _translateRelationType(String type) {
+    switch (type) {
+      case 'PREQUEL': return 'PRECUELA';
+      case 'SEQUEL': return 'SECUELA';
+      case 'SIDE_STORY': return 'HISTORIA ALTERNA';
+      case 'SPIN_OFF': return 'SPIN-OFF';
+      case 'ALTERNATIVE': return 'VERSIÓN ALTERNA';
+      case 'PARENT': return 'HISTORIA PRINCIPAL';
+      case 'SUMMARY': return 'RESUMEN';
+      case 'CHARACTER': return 'PERSONAJE';
+      default: return 'RELACIONADO';
+    }
+  }
+
+  Widget _buildInfoChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white70, size: 16),
+          const SizedBox(width: 8),
+          Text(text, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDesktopHeader(BuildContext context, Anime anime, Color dominantColor) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Container(
-          margin: const EdgeInsets.only(left: 70), // Tu super margen de 70px
-          width: 140,
-          height: 210,
+          margin: const EdgeInsets.only(left: 70),
+          width: 160,
+          height: 240,
           decoration: _posterDecoration(dominantColor),
           child: _posterImage(anime.coverImage),
         ),
@@ -152,15 +364,15 @@ class DetailsScreen extends StatelessWidget {
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              const SizedBox(height: 70),
               Text(
                 anime.title,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 26, height: 1.2),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 32, height: 1.1),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               SizedBox(
-                width: double.infinity, // Restaurado al ancho completo para que no se vea cortado
+                width: double.infinity,
                 child: _buildAddButton(context, anime.idMal, dominantColor),
               ),
             ],
@@ -177,7 +389,7 @@ class DetailsScreen extends StatelessWidget {
         Center(
           child: Container(
             width: 160,
-            height: 240, // La portada resalta más en celular al ser el foco principal
+            height: 240,
             decoration: _posterDecoration(dominantColor),
             child: _posterImage(anime.coverImage),
           ),
@@ -186,7 +398,7 @@ class DetailsScreen extends StatelessWidget {
         Text(
           anime.title,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24, height: 1.2),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 26, height: 1.2),
         ),
         const SizedBox(height: 24),
         SizedBox(
@@ -236,14 +448,14 @@ class DetailsScreen extends StatelessWidget {
               }
             } catch (e) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error: \$e'), backgroundColor: Colors.redAccent)
+                SnackBar(content: Text('Error: $e'), backgroundColor: Colors.redAccent)
               );
             }
           },
-          icon: Icon(isFavorite ? Icons.bookmark_added_rounded : Icons.bookmark_add_rounded, size: 20),
+          icon: Icon(isFavorite ? Icons.bookmark_added_rounded : Icons.bookmark_add_rounded, size: 22),
           label: Text(
             isFavorite ? 'En Mi Lista' : 'Añadir a Mi Lista', 
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: isFavorite ? Colors.green.shade600 : color,
@@ -271,12 +483,61 @@ class DetailsScreen extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           label, 
-          style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w600),
+          style: const TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.w600),
           textAlign: TextAlign.center,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
       ],
+    );
+  }
+}
+
+// ==========================================
+// WIDGET REPRODUCTOR DE YOUTUBE
+// ==========================================
+class _TrailerPlayer extends StatefulWidget {
+  final String trailerId;
+  const _TrailerPlayer({required this.trailerId});
+
+  @override
+  State<_TrailerPlayer> createState() => _TrailerPlayerState();
+}
+
+class _TrailerPlayerState extends State<_TrailerPlayer> {
+  late YoutubePlayerController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = YoutubePlayerController.fromVideoId(
+      videoId: widget.trailerId,
+      autoPlay: false,
+      params: const YoutubePlayerParams(
+        showControls: true,
+        showFullscreenButton: true,
+        mute: false,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: YoutubePlayer(
+          controller: _controller,
+          backgroundColor: Colors.black,
+        ),
+      ),
     );
   }
 }
