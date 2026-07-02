@@ -39,10 +39,39 @@ class AniListService {
   }
 
   static Future<List<Anime>> searchAnime(String search) async {
+    try {
+      // 1. Usar Jikan (MyAnimeList API) para la búsqueda parcial porque AniList falla con prefijos cortos (ej: "juju")
+      final jikanResponse = await http.get(Uri.parse('https://api.jikan.moe/v4/anime?q=$search&limit=20&order_by=members&sort=desc'));
+      
+      if (jikanResponse.statusCode == 200) {
+        final jikanData = json.decode(jikanResponse.body);
+        final List results = jikanData['data'] ?? [];
+        
+        if (results.isNotEmpty) {
+          final List<int> malIds = results.map<int>((anime) => anime['mal_id'] as int).toList();
+          
+          // Obtener la información visual rica desde AniList
+          final animes = await getAnimesByIds(malIds);
+          
+          // Ordenar los resultados para mantener el orden exacto de relevancia/popularidad de Jikan
+          animes.sort((a, b) {
+            final indexA = malIds.indexOf(a.idMal);
+            final indexB = malIds.indexOf(b.idMal);
+            return indexA.compareTo(indexB);
+          });
+          
+          return animes;
+        }
+      }
+    } catch (e) {
+      // Fallback silencioso a AniList si Jikan falla
+    }
+
+    // 2. Fallback: Búsqueda nativa de AniList
     final String query = '''
       query(\$search: String) {
-        Page(page: 1, perPage: 20) {
-          media(search: \$search, type: ANIME, sort: POPULARITY_DESC) {
+        Page(page: 1, perPage: 50) {
+          media(search: \$search, type: ANIME, sort: [POPULARITY_DESC]) {
             idMal
             title { romaji }
             coverImage { large color }
@@ -52,6 +81,7 @@ class AniListService {
             episodes
             status
             averageScore
+            popularity
           }
         }
       }
@@ -70,6 +100,13 @@ class AniListService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final List animeList = data['data']['Page']['media'];
+        
+        animeList.sort((a, b) {
+          final popA = a['popularity'] ?? 0;
+          final popB = b['popularity'] ?? 0;
+          return popB.compareTo(popA);
+        });
+
         return animeList.map((json) => Anime.fromJson(json)).toList();
       } else {
         throw Exception('Error HTTP: \${response.statusCode}');
