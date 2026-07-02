@@ -23,12 +23,6 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
-      appBar: AppBar(
-        title: const Text('Miteru (見てる)', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.5, color: Colors.white)),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Column(

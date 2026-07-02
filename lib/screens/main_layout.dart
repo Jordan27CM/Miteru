@@ -21,6 +21,39 @@ class _MainLayoutState extends State<MainLayout> {
     const ProfileScreen(),
   ];
 
+  Widget _buildLogo() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Colors.deepPurpleAccent, Colors.purple],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(color: Colors.deepPurpleAccent.withOpacity(0.5), blurRadius: 8, offset: const Offset(0, 3)),
+            ],
+          ),
+          child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+        ),
+        const SizedBox(width: 12),
+        const Text(
+          'MITERU',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2,
+            fontSize: 22,
+            color: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width >= 600;
@@ -28,6 +61,14 @@ class _MainLayoutState extends State<MainLayout> {
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A), // Fondo base
       
+      appBar: AppBar(
+        title: _buildLogo(),
+        centerTitle: true, // Siempre centrado (Web y Celular)
+        backgroundColor: const Color(0xFF0F172A),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+
       body: isDesktop
           ? Row(
               children: [
